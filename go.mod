@@ -1,4 +1,4 @@
-module github.com/zeebo/goof
+module github.com/dedecn/goof
 
 go 1.12
 
