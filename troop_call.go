@@ -9,7 +9,12 @@ import (
 
 	"github.com/zeebo/errs"
 )
-
+var offset int64
+func (t *Troop) SetOffset(ptr uint64, name string) {
+	pc, _ := t.GetFuncPC(name)
+	offset = int64(ptr) - int64(pc)
+	fmt.Printf("offset %x, %x, %x\n", offset, pc, ptr)
+}
 func (t *Troop) addFunctions() error {
 	reader := t.data.Reader()
 
@@ -68,6 +73,31 @@ func (t *Troop) Functions() ([]string, error) {
 	return out, nil
 }
 
+
+func (t *Troop) GetFuncPC(name string) (uint64, error) {
+	if err := t.check(); err != nil {
+		return 0, err
+	}
+	entry, ok := t.functions[name]
+	if !ok {
+		return 0, fmt.Errorf("call %s: unknown or uncallable function", name)
+	}
+	pc := uint64(int64(entry.pc) + offset)
+	return pc, nil
+}
+
+func (t *Troop) GetFunc(name string, fn_typ reflect.Type) (interface{}, error) {
+	if err := t.check(); err != nil {
+		return nil, err
+	}
+	entry, ok := t.functions[name]
+	if !ok {
+		return nil, fmt.Errorf("call %s: unknown or uncallable function", name)
+	}
+	pc := uint64(int64(entry.pc) + offset)
+	fn := makeInterface(dataPtr(fn_typ), unsafe.Pointer(&pc))
+	return fn, nil
+}
 func (t *Troop) Call(name string, args ...interface{}) ([]interface{}, error) {
 	if err := t.check(); err != nil {
 		return nil, err
@@ -103,6 +133,7 @@ func (t *Troop) Call(name string, args ...interface{}) ([]interface{}, error) {
 
 	// make it happen
 	fn_typ := reflect.FuncOf(in_types, out_types, false)
+	pc = uint64(int64(pc) + offset)
 	fn := reflect.ValueOf(makeInterface(dataPtr(fn_typ), unsafe.Pointer(&pc)))
 	return ifaces(fn.Call(in)), nil
 }
