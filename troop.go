@@ -12,6 +12,7 @@ type Troop struct {
 	data      *dwarf.Data
 	types     map[string]reflect.Type
 	globals   map[string]reflect.Value
+	variables map[string]uintptr
 	functions map[string]functionCacheEntry
 }
 
@@ -33,6 +34,7 @@ func (t *Troop) init() {
 	}
 
 	t.globals = make(map[string]reflect.Value)
+	t.variables = make(map[string]uintptr)
 	t.err = t.addGlobals()
 	if t.err != nil {
 		return

@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 	"unsafe"
-
+	"fmt"
 	"github.com/zeebo/errs"
 )
 
@@ -46,6 +46,7 @@ func (t *Troop) addGlobals() error {
 		if err != nil {
 			continue
 		}
+		t.variables[name] = uintptr(loc)
 
 		dtyp, err := entryType(t.data, entry)
 		if err != nil {
@@ -86,4 +87,27 @@ func (t *Troop) Global(name string) (reflect.Value, error) {
 		return reflect.Value{}, t.err
 	}
 	return t.globals[name], nil
+}
+
+func (t *Troop) Variables() ([]string, error) {
+	if err := t.check(); err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(t.variables))
+	for name := range t.variables {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+func (t *Troop) Variable(name string) (uintptr, error) {
+	if err := t.check(); err != nil {
+		return 0, t.err
+	}
+	if ret, ok := t.variables[name]; ok {
+		return ret, nil
+	} else {
+		return 0, fmt.Errorf("%s not found", name)
+	}
 }
